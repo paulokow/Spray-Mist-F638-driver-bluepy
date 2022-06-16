@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "spray-mist-f638"
+name = "spraymistf638"
 version = "0.1.0"
 description = ""
 authors = ["Pawel Kowalik <github-pub@paulonet.eu>"]
