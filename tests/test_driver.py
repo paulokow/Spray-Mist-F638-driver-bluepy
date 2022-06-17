@@ -163,3 +163,76 @@ def test_get_battery_level():
             char_mock.read.side_effect = BTLEException("Test exception")
             res = dr.battery_level
             assert False == dr.connected
+
+
+def test_get_manual():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.return_value = srv
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("690300001E")
+        assert 30 == dr.manual_time
+        assert False == dr.manual_on
+        assert True == dr.connected
+
+        char_mock.read.return_value = bytes.fromhex("690301012C")
+        assert 300 == dr.manual_time
+        assert True == dr.manual_on
+        assert True == dr.connected
+
+        with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.manual_on
+
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.manual_on
+            assert False == dr.connected
+
+        with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.manual_time
+
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.manual_time
+            assert False == dr.connected
+
+
+def test_write_manual():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.return_value = srv
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("690300001E")
+        char_mock.write.return_value = {"rsp": ["wr"]}
+        assert True == dr.switch_manual_on(60)
+        char_mock.write.assert_called_once_with(bytes.fromhex("690301003C"), True)
+        assert True == dr.connected
+        char_mock.read.return_value = bytes.fromhex("690301003C")
+        assert True == dr.manual_on
+        char_mock.read.return_value = bytes.fromhex("6903010010")
+        char_mock.write.reset_mock()
+        assert True == dr.switch_manual_on()
+        char_mock.write.assert_called_once_with(bytes.fromhex("690301003C"), True)
+
+        assert True == dr.switch_manual_on(20)
+        char_mock.write.reset_mock()
+        assert True == dr.switch_manual_off()
+        char_mock.write.assert_called_once_with(bytes.fromhex("6903000014"), True)
+
+        srv.getCharacteristics.return_value = []
+        assert False == dr.switch_manual_on()
+        srv.getCharacteristics.return_value = [char_mock]
+
+        char_mock.write.side_effect = BTLEException("Test exception")
+        assert False == dr.switch_manual_on()
+        assert False == dr.switch_manual_off()

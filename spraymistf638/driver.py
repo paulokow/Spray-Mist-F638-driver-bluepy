@@ -8,6 +8,7 @@ BATTERY_LEVEL_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
 CHAR_UUID_PATTERN = "0000{}-0000-1000-8000-00805f9b34fb"
 CHAR_ID_WORKING_MODE = "fcc2"
 CHAR_ID_RUNNING_MODE = "fcd1"
+CHAR_ID_MANUAL_ON_OFF = "fcd9"
 CHAR_ID_BATTERY_LEVEL = "2a19"
 
 
@@ -33,6 +34,7 @@ class SprayMistF638:
         self._device = Peripheral()
         self._servicesloaded = False
         self._connected = False
+        self._last_manual_time_sec = 30
 
     def connect(self) -> bool:
         if not self._connected:
@@ -94,6 +96,19 @@ class SprayMistF638:
                 self.disconnect()
         return None
 
+    def _write_property(self, service: Service, uuid: str, payload: bytes) -> bool:
+        if self.connect():
+            try:
+                chr = service.getCharacteristics(uuid)
+                if len(chr) == 1:
+                    ret = chr[0].write(payload, True)
+                    # Success response{'rsp': ['wr']}
+                    if "rsp" in ret and ret["rsp"] == ["wr"]:
+                        return True
+            except BTLEException:
+                self.disconnect()
+        return False
+
     @property
     def working_mode(self) -> WorkingMode:
         val = self._get_property(
@@ -141,3 +156,47 @@ class SprayMistF638:
             return res
         else:
             raise SprayMistF638Exception(f"No characteristics returned")
+
+    @property
+    def manual_time(self) -> int:
+        val = self._get_property(
+            self._batterylevelservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
+        )
+        if val is not None:
+            res = struct.unpack(">xxBH", val)
+            return res[1]
+        else:
+            raise SprayMistF638Exception(f"No characteristics returned")
+
+    @property
+    def manual_on(self) -> bool:
+        val = self._get_property(
+            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
+        )
+        if val is not None:
+            res = struct.unpack(">xxBH", val)
+            return res[0] == 0x01
+        else:
+            raise SprayMistF638Exception(f"No characteristics returned")
+
+    def switch_manual_on(self, time_seconds: int = 0) -> bool:
+        if time_seconds == 0:
+            time_seconds = self._last_manual_time_sec
+        payload = struct.pack(">BBBH", 0x69, 0x03, 0x01, time_seconds)
+        ret = self._write_property(
+            self._watertimerservice,
+            CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF),
+            payload,
+        )
+        if ret:
+            self._last_manual_time_sec = time_seconds
+        return ret
+
+    def switch_manual_off(self) -> bool:
+        time_seconds = self._last_manual_time_sec
+        payload = struct.pack(">BBBH", 0x69, 0x03, 0x00, time_seconds)
+        return self._write_property(
+            self._watertimerservice,
+            CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF),
+            payload,
+        )
