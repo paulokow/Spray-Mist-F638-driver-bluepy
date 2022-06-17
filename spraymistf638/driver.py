@@ -21,6 +21,10 @@ class RunningMode(enum.Enum):
     RunningAutomatic = 3
 
 
+class SprayMistF638Exception(Exception):
+    pass
+
+
 class SprayMistF638:
     def __init__(self, mac: str) -> None:
         self._mac = mac
@@ -53,22 +57,22 @@ class SprayMistF638:
             return True
 
     @property
-    def connected(self):
+    def connected(self) -> bool:
         return self._connected
 
-    def _load_services(self):
+    def _load_services(self) -> None:
         self._watertimerserviceint = self._device.getServiceByUUID(
             WATER_TIMER_SERVICE_UUID
         )
         self._servicesloaded = True
 
     @property
-    def _watertimerservice(self):
+    def _watertimerservice(self) -> Service:
         if not self._servicesloaded:
             self.connect()
         return self._watertimerserviceint
 
-    def _get_property(self, service: Service, uuid: str) -> bytes:
+    def _get_property(self, service: Service, uuid: str) -> Union[bytes, None]:
         if self.connect():
             try:
                 chr = service.getCharacteristics(uuid)
@@ -90,7 +94,9 @@ class SprayMistF638:
                 return WorkingMode.Manual
             elif res == 0x01:
                 return WorkingMode.Auto
-        raise Exception(f"Unknown working mode: {res}")
+        else:
+            SprayMistF638Exception(f"No characteristics returned")
+        raise SprayMistF638Exception(f"Unknown working mode: {res}")
 
     @property
     def running_mode(self) -> RunningMode:
@@ -107,4 +113,6 @@ class SprayMistF638:
                 return RunningMode.RunningAutomatic
             elif res == 0x0A:
                 return RunningMode.RunningManual
-        raise Exception(f"Unknown running mode: {res}")
+        else:
+            SprayMistF638Exception(f"No characteristics returned")
+        raise SprayMistF638Exception(f"Unknown running mode: {res}")
