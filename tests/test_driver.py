@@ -134,3 +134,32 @@ def test_get_property():
         char_mock.read.side_effect = BTLEException("Test exception")
         res = dr._get_property(srv, "dummy")
         assert False == dr.connected
+
+
+def test_get_battery_level():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.return_value = srv
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("24")
+        assert 36 == dr.battery_level
+        assert True == dr.connected
+
+        char_mock.read.return_value = bytes.fromhex("00")
+        assert 0 == dr.battery_level
+
+        char_mock.read.return_value = bytes.fromhex("64")
+        assert 100 == dr.battery_level
+
+        with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.battery_level
+
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.battery_level
+            assert False == dr.connected

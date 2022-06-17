@@ -4,9 +4,11 @@ import struct
 from typing import Union
 
 WATER_TIMER_SERVICE_UUID = "0000fcc0-0000-1000-8000-00805f9b34fb"
+BATTERY_LEVEL_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
 CHAR_UUID_PATTERN = "0000{}-0000-1000-8000-00805f9b34fb"
 CHAR_ID_WORKING_MODE = "fcc2"
 CHAR_ID_RUNNING_MODE = "fcd1"
+CHAR_ID_BATTERY_LEVEL = "2a19"
 
 
 class WorkingMode(enum.Enum):
@@ -64,6 +66,9 @@ class SprayMistF638:
         self._watertimerserviceint = self._device.getServiceByUUID(
             WATER_TIMER_SERVICE_UUID
         )
+        self._batterylevelserviceint = self._device.getServiceByUUID(
+            BATTERY_LEVEL_SERVICE_UUID
+        )
         self._servicesloaded = True
 
     @property
@@ -71,6 +76,12 @@ class SprayMistF638:
         if not self._servicesloaded:
             self.connect()
         return self._watertimerserviceint
+
+    @property
+    def _batterylevelservice(self) -> Service:
+        if not self._servicesloaded:
+            self.connect()
+        return self._batterylevelserviceint
 
     def _get_property(self, service: Service, uuid: str) -> Union[bytes, None]:
         if self.connect():
@@ -117,5 +128,16 @@ class SprayMistF638:
                 return RunningMode.RunningManual
             else:
                 raise SprayMistF638Exception(f"Unknown running mode: {res}")
+        else:
+            raise SprayMistF638Exception(f"No characteristics returned")
+
+    @property
+    def battery_level(self) -> int:
+        val = self._get_property(
+            self._batterylevelservice, CHAR_UUID_PATTERN.format(CHAR_ID_BATTERY_LEVEL)
+        )
+        if val is not None:
+            res = struct.unpack("B", val)[0]
+            return res
         else:
             raise SprayMistF638Exception(f"No characteristics returned")
