@@ -3,8 +3,8 @@ name = "spraymistf638"
 version = "0.1.0"
 description = ""
 authors = ["Pawel Kowalik <github-pub@paulonet.eu>"]
-license = Apache-2.0
-repository = https://github.com/paulokow/Spray-Mist-F638-driver-bluepy
+license = "Apache-2.0"
+repository = "https://github.com/paulokow/Spray-Mist-F638-driver-bluepy"
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Development Status :: 3 - Alpha",
