@@ -54,7 +54,11 @@ def test_get_working_mode():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
@@ -81,7 +85,11 @@ def test_get_running_mode():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
@@ -112,7 +120,11 @@ def test_get_property():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
@@ -141,7 +153,11 @@ def test_get_battery_level():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000180f-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
@@ -170,7 +186,12 @@ def test_get_manual():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
+
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
@@ -208,7 +229,11 @@ def test_write_manual():
         srv = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
-        dr._device.getServiceByUUID.return_value = srv
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
         char_mock = MagicMock()
         srv.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
