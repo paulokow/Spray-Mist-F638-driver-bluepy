@@ -28,7 +28,7 @@ jobs:
           pip install poetry
           poetry install
       - name: Run tests
-        run: poetry run pytest tests --cov --cov-report=xml
+        run: poetry run pytest tests
       - name: Build distribution packages
         run: poetry build
       - name: Publish a Python distribution to PyPI
