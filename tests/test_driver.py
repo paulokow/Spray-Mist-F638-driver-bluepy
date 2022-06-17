@@ -64,8 +64,16 @@ def test_get_working_mode():
         char_mock.read.return_value = bytes.fromhex("520100")
         assert WorkingMode.Manual == dr.working_mode
         with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.working_mode
+        srv.getCharacteristics.return_value = [char_mock]
+        with pytest.raises(SprayMistF638Exception):
             char_mock.read.return_value = bytes.fromhex("520103")
             res = dr.working_mode
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.working_mode
+            assert False == dr.connected
 
 
 def test_get_running_mode():
@@ -87,5 +95,42 @@ def test_get_running_mode():
         char_mock.read.return_value = bytes.fromhex("61010A")
         assert RunningMode.RunningManual == dr.running_mode
         with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.running_mode
+        srv.getCharacteristics.return_value = [char_mock]
+        with pytest.raises(SprayMistF638Exception):
             char_mock.read.return_value = bytes.fromhex("61010C")
             res = dr.running_mode
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.running_mode
+            assert False == dr.connected
+
+
+def test_get_property():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.return_value = srv
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("520101")
+        assert bytes.fromhex("520101") == dr._get_property(srv, "dummy")
+        assert True == dr.connected
+
+        char_mock.supportsRead.return_value = False
+        assert None == dr._get_property(srv, "dummy")
+        char_mock.supportsRead.return_value = True
+
+        srv.getCharacteristics.return_value = []
+        assert None == dr._get_property(srv, "dummy")
+        srv.getCharacteristics.return_value = [char_mock, char_mock]
+        assert None == dr._get_property(srv, "dummy")
+        srv.getCharacteristics.return_value = [char_mock]
+        assert bytes.fromhex("520101") == dr._get_property(srv, "dummy")
+
+        char_mock.read.side_effect = BTLEException("Test exception")
+        res = dr._get_property(srv, "dummy")
+        assert False == dr.connected

@@ -94,9 +94,11 @@ class SprayMistF638:
                 return WorkingMode.Manual
             elif res == 0x01:
                 return WorkingMode.Auto
+            else:
+                raise SprayMistF638Exception(f"Unknown working mode: {res}")
+
         else:
-            SprayMistF638Exception(f"No characteristics returned")
-        raise SprayMistF638Exception(f"Unknown working mode: {res}")
+            raise SprayMistF638Exception(f"No characteristics returned")
 
     @property
     def running_mode(self) -> RunningMode:
@@ -113,6 +115,7 @@ class SprayMistF638:
                 return RunningMode.RunningAutomatic
             elif res == 0x0A:
                 return RunningMode.RunningManual
+            else:
+                raise SprayMistF638Exception(f"Unknown running mode: {res}")
         else:
-            SprayMistF638Exception(f"No characteristics returned")
-        raise SprayMistF638Exception(f"Unknown running mode: {res}")
+            raise SprayMistF638Exception(f"No characteristics returned")
