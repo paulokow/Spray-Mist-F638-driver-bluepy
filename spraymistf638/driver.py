@@ -160,7 +160,7 @@ class SprayMistF638:
     @property
     def manual_time(self) -> int:
         val = self._get_property(
-            self._batterylevelservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
+            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
         )
         if val is not None:
             res = struct.unpack(">xxBH", val)
