@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spraymistf638"
-version = "0.1.3"
+version = "0.1.4"
 description = ""
 authors = ["Pawel Kowalik <github-pub@paulonet.eu>"]
 license = "Apache-2.0"
