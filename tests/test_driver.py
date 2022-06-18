@@ -46,7 +46,7 @@ def test_disconnect():
         assert True == dr2.connected
         # disconnect throws
         assert False == dr2.disconnect()
-        assert True == dr2.connected
+        assert False == dr2.connected
 
 
 def test_get_working_mode():
@@ -119,16 +119,15 @@ def test_get_running_mode():
 
 def test_get_property():
     with patch("spraymistf638.driver.Peripheral") as mocked_ble:
-        srv = MagicMock()
+        srv = "0000fcc0-0000-1000-8000-00805f9b34fb"
+        srv_mock = MagicMock()
 
         dr = SprayMistF638("1:1:1:1:1:1")
         dr._device.getServiceByUUID.side_effect = (
-            lambda uuid: srv
-            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
-            else MagicMock()
+            lambda uuid: srv_mock if uuid == srv else MagicMock()
         )
         char_mock = MagicMock()
-        srv.getCharacteristics.return_value = [char_mock]
+        srv_mock.getCharacteristics.return_value = [char_mock]
         char_mock.supportsRead.return_value = True
         char_mock.read.return_value = bytes.fromhex("520101")
         assert bytes.fromhex("520101") == dr._get_property(srv, "dummy")
@@ -138,11 +137,11 @@ def test_get_property():
         assert None == dr._get_property(srv, "dummy")
         char_mock.supportsRead.return_value = True
 
-        srv.getCharacteristics.return_value = []
+        srv_mock.getCharacteristics.return_value = []
         assert None == dr._get_property(srv, "dummy")
-        srv.getCharacteristics.return_value = [char_mock, char_mock]
+        srv_mock.getCharacteristics.return_value = [char_mock, char_mock]
         assert None == dr._get_property(srv, "dummy")
-        srv.getCharacteristics.return_value = [char_mock]
+        srv_mock.getCharacteristics.return_value = [char_mock]
         assert bytes.fromhex("520101") == dr._get_property(srv, "dummy")
 
         char_mock.read.side_effect = BTLEException("Test exception")

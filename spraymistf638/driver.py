@@ -5,6 +5,7 @@ from typing import Union
 
 WATER_TIMER_SERVICE_UUID = "0000fcc0-0000-1000-8000-00805f9b34fb"
 BATTERY_LEVEL_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
+SERVICES_UUIDS = (WATER_TIMER_SERVICE_UUID, BATTERY_LEVEL_SERVICE_UUID)
 CHAR_UUID_PATTERN = "0000{}-0000-1000-8000-00805f9b34fb"
 CHAR_ID_WORKING_MODE = "fcc2"
 CHAR_ID_RUNNING_MODE = "fcd1"
@@ -35,6 +36,7 @@ class SprayMistF638:
         self._servicesloaded = False
         self._connected = False
         self._last_manual_time_sec = 30
+        self._services: dict[str, Service] = {}
 
     def connect(self) -> bool:
         if not self._connected:
@@ -51,9 +53,9 @@ class SprayMistF638:
 
     def disconnect(self) -> bool:
         if self._connected:
+            self._connected = False
             try:
                 self._device.disconnect()
-                self._connected = False
                 return True
             except BTLEException:
                 return False
@@ -65,34 +67,15 @@ class SprayMistF638:
         return self._connected
 
     def _load_services(self) -> None:
-        self._watertimerserviceint = self._device.getServiceByUUID(
-            WATER_TIMER_SERVICE_UUID
-        )
-        self._batterylevelserviceint = self._device.getServiceByUUID(
-            BATTERY_LEVEL_SERVICE_UUID
-        )
+        for uuid in SERVICES_UUIDS:
+            if uuid not in self._services:
+                self._services[uuid] = self._device.getServiceByUUID(uuid)
         self._servicesloaded = True
 
-    @property
-    def _watertimerservice(self) -> Service:
-        if not self._servicesloaded:
-            if not self.connect():
-                raise SprayMistF638Exception("Cannot connect and get watertimerservice")
-        return self._watertimerserviceint
-
-    @property
-    def _batterylevelservice(self) -> Service:
-        if not self._servicesloaded:
-            if not self.connect():
-                raise SprayMistF638Exception(
-                    "Cannot connect and get battery level service"
-                )
-        return self._batterylevelserviceint
-
-    def _get_property(self, service: Service, uuid: str) -> Union[bytes, None]:
+    def _get_property(self, serviceuuid: str, uuid: str) -> Union[bytes, None]:
         if self.connect():
             try:
-                chr = service.getCharacteristics(uuid)
+                chr = self._services[serviceuuid].getCharacteristics(uuid)
                 if len(chr) == 1:
                     if chr[0].supportsRead():
                         return chr[0].read()
@@ -100,10 +83,10 @@ class SprayMistF638:
                 self.disconnect()
         return None
 
-    def _write_property(self, service: Service, uuid: str, payload: bytes) -> bool:
+    def _write_property(self, serviceuuid: str, uuid: str, payload: bytes) -> bool:
         if self.connect():
             try:
-                chr = service.getCharacteristics(uuid)
+                chr = self._services[serviceuuid].getCharacteristics(uuid)
                 if len(chr) == 1:
                     ret = chr[0].write(payload, True)
                     # Success response{'rsp': ['wr']}
@@ -116,7 +99,7 @@ class SprayMistF638:
     @property
     def working_mode(self) -> WorkingMode:
         val = self._get_property(
-            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_WORKING_MODE)
+            WATER_TIMER_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_WORKING_MODE)
         )
         if val is not None:
             res = struct.unpack("xxB", val)[0]
@@ -133,7 +116,7 @@ class SprayMistF638:
     @property
     def running_mode(self) -> RunningMode:
         val = self._get_property(
-            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_RUNNING_MODE)
+            WATER_TIMER_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_RUNNING_MODE)
         )
         if val is not None:
             res = struct.unpack("xxB", val)[0]
@@ -153,7 +136,7 @@ class SprayMistF638:
     @property
     def battery_level(self) -> int:
         val = self._get_property(
-            self._batterylevelservice, CHAR_UUID_PATTERN.format(CHAR_ID_BATTERY_LEVEL)
+            BATTERY_LEVEL_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_BATTERY_LEVEL)
         )
         if val is not None:
             res = struct.unpack("B", val)[0]
@@ -164,7 +147,7 @@ class SprayMistF638:
     @property
     def manual_time(self) -> int:
         val = self._get_property(
-            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
+            WATER_TIMER_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
         )
         if val is not None:
             res = struct.unpack(">xxBH", val)
@@ -175,7 +158,7 @@ class SprayMistF638:
     @property
     def manual_on(self) -> bool:
         val = self._get_property(
-            self._watertimerservice, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
+            WATER_TIMER_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF)
         )
         if val is not None:
             res = struct.unpack(">xxBH", val)
@@ -188,7 +171,7 @@ class SprayMistF638:
             time_seconds = self._last_manual_time_sec
         payload = struct.pack(">BBBH", 0x69, 0x03, 0x01, time_seconds)
         ret = self._write_property(
-            self._watertimerservice,
+            WATER_TIMER_SERVICE_UUID,
             CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF),
             payload,
         )
@@ -200,7 +183,7 @@ class SprayMistF638:
         time_seconds = self._last_manual_time_sec
         payload = struct.pack(">BBBH", 0x69, 0x03, 0x00, time_seconds)
         return self._write_property(
-            self._watertimerservice,
+            WATER_TIMER_SERVICE_UUID,
             CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF),
             payload,
         )
