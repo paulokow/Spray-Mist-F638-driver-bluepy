@@ -2,6 +2,7 @@ from bluepy.btle import Peripheral, Service, Characteristic, UUID, BTLEException
 import enum
 import struct
 from typing import Union
+from threading import Lock
 
 WATER_TIMER_SERVICE_UUID = "0000fcc0-0000-1000-8000-00805f9b34fb"
 BATTERY_LEVEL_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
@@ -29,6 +30,9 @@ class SprayMistF638Exception(Exception):
     pass
 
 
+connectmutex = Lock()
+
+
 class SprayMistF638:
     def __init__(self, mac: str) -> None:
         self._mac = mac
@@ -39,28 +43,30 @@ class SprayMistF638:
         self._services: dict[str, Service] = {}
 
     def connect(self) -> bool:
-        if not self._connected:
-            try:
-                self._device.connect(self._mac)
-                self._connected = True
-                if not self._servicesloaded:
-                    self._load_services()
+        with connectmutex:
+            if not self._connected:
+                try:
+                    self._device.connect(self._mac)
+                    if not self._servicesloaded:
+                        self._load_services()
+                    self._connected = True
+                    return True
+                except BTLEException:
+                    return False
+            else:
                 return True
-            except BTLEException:
-                return False
-        else:
-            return True
 
     def disconnect(self) -> bool:
-        if self._connected:
-            self._connected = False
-            try:
-                self._device.disconnect()
+        with connectmutex:
+            if self._connected:
+                self._connected = False
+                try:
+                    self._device.disconnect()
+                    return True
+                except BTLEException:
+                    return False
+            else:
                 return True
-            except BTLEException:
-                return False
-        else:
-            return True
 
     @property
     def connected(self) -> bool:
