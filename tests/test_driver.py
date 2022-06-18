@@ -102,12 +102,14 @@ def test_get_running_mode():
         assert RunningMode.RunningAutomatic == dr.running_mode
         char_mock.read.return_value = bytes.fromhex("61010A")
         assert RunningMode.RunningManual == dr.running_mode
+        char_mock.read.return_value = bytes.fromhex("610109")
+        assert RunningMode.RunningManual == dr.running_mode
         with pytest.raises(SprayMistF638Exception):
             srv.getCharacteristics.return_value = []
             res = dr.running_mode
         srv.getCharacteristics.return_value = [char_mock]
         with pytest.raises(SprayMistF638Exception):
-            char_mock.read.return_value = bytes.fromhex("61010C")
+            char_mock.read.return_value = bytes.fromhex("610103")
             res = dr.running_mode
         with pytest.raises(SprayMistF638Exception):
             char_mock.read.side_effect = BTLEException("Test exception")

@@ -76,13 +76,17 @@ class SprayMistF638:
     @property
     def _watertimerservice(self) -> Service:
         if not self._servicesloaded:
-            self.connect()
+            if not self.connect():
+                raise SprayMistF638Exception("Cannot connect and get watertimerservice")
         return self._watertimerserviceint
 
     @property
     def _batterylevelservice(self) -> Service:
         if not self._servicesloaded:
-            self.connect()
+            if not self.connect():
+                raise SprayMistF638Exception(
+                    "Cannot connect and get battery level service"
+                )
         return self._batterylevelserviceint
 
     def _get_property(self, service: Service, uuid: str) -> Union[bytes, None]:
@@ -139,7 +143,7 @@ class SprayMistF638:
                 return RunningMode.Stopped
             elif res == 0x04:
                 return RunningMode.RunningAutomatic
-            elif res == 0x0A:
+            elif res & 0x08 == 0x08:
                 return RunningMode.RunningManual
             else:
                 raise SprayMistF638Exception(f"Unknown running mode: {res}")
