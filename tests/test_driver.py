@@ -200,6 +200,9 @@ def test_get_manual():
         assert 30 == dr.manual_time
         assert False == dr.manual_on
         assert True == dr.connected
+        srv.getCharacteristics.assert_called_with(
+            "0000fcd9-0000-1000-8000-00805f9b34fb"
+        )
 
         char_mock.read.return_value = bytes.fromhex("690301012C")
         assert 300 == dr.manual_time
@@ -262,3 +265,70 @@ def test_write_manual():
         char_mock.write.side_effect = BTLEException("Test exception")
         assert False == dr.switch_manual_on()
         assert False == dr.switch_manual_off()
+
+
+def test_get_pause_days():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
+
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("660100")
+        assert 0 == dr.pause_days
+        assert True == dr.connected
+        srv.getCharacteristics.assert_called_with(
+            "0000fcd6-0000-1000-8000-00805f9b34fb"
+        )
+
+        char_mock.read.return_value = bytes.fromhex("660107")
+        assert 7 == dr.pause_days
+        assert True == dr.connected
+
+        with pytest.raises(SprayMistF638Exception):
+            srv.getCharacteristics.return_value = []
+            res = dr.pause_days
+
+        with pytest.raises(SprayMistF638Exception):
+            char_mock.read.side_effect = BTLEException("Test exception")
+            res = dr.pause_days
+            assert False == dr.connected
+
+
+def test_set_pause_days():
+    with patch("spraymistf638.driver.Peripheral") as mocked_ble:
+        srv = MagicMock()
+
+        dr = SprayMistF638("1:1:1:1:1:1")
+        dr._device.getServiceByUUID.side_effect = (
+            lambda uuid: srv
+            if uuid == "0000fcc0-0000-1000-8000-00805f9b34fb"
+            else MagicMock()
+        )
+        char_mock = MagicMock()
+        srv.getCharacteristics.return_value = [char_mock]
+        char_mock.supportsRead.return_value = True
+        char_mock.read.return_value = bytes.fromhex("660100")
+        char_mock.write.return_value = {"rsp": ["wr"]}
+        assert True == dr.set_pause_days(7)
+        char_mock.write.assert_called_once_with(bytes.fromhex("660107"), True)
+        assert True == dr.connected
+        char_mock.read.return_value = bytes.fromhex("660107")
+        assert 7 == dr.pause_days
+        char_mock.write.reset_mock()
+        assert True == dr.set_pause_days(0)
+        char_mock.write.assert_called_once_with(bytes.fromhex("660100"), True)
+
+        srv.getCharacteristics.return_value = []
+        assert False == dr.set_pause_days(7)
+        srv.getCharacteristics.return_value = [char_mock]
+
+        char_mock.write.side_effect = BTLEException("Test exception")
+        assert False == dr.set_pause_days(7)
