@@ -11,6 +11,7 @@ CHAR_UUID_PATTERN = "0000{}-0000-1000-8000-00805f9b34fb"
 CHAR_ID_WORKING_MODE = "fcc2"
 CHAR_ID_RUNNING_MODE = "fcd1"
 CHAR_ID_MANUAL_ON_OFF = "fcd9"
+CHAR_ID_PAUSE_DAYS = "fcd6"
 CHAR_ID_BATTERY_LEVEL = "2a19"
 
 
@@ -191,5 +192,24 @@ class SprayMistF638:
         return self._write_property(
             WATER_TIMER_SERVICE_UUID,
             CHAR_UUID_PATTERN.format(CHAR_ID_MANUAL_ON_OFF),
+            payload,
+        )
+
+    @property
+    def pause_days(self) -> int:
+        val = self._get_property(
+            WATER_TIMER_SERVICE_UUID, CHAR_UUID_PATTERN.format(CHAR_ID_PAUSE_DAYS)
+        )
+        if val is not None:
+            res = struct.unpack(">xxB", val)[0]
+            return res
+        else:
+            raise SprayMistF638Exception(f"No characteristics returned")
+
+    def set_pause_days(self, val: int) -> bool:
+        payload = struct.pack(">BBB", 0x66, 0x01, val)
+        return self._write_property(
+            WATER_TIMER_SERVICE_UUID,
+            CHAR_UUID_PATTERN.format(CHAR_ID_PAUSE_DAYS),
             payload,
         )
